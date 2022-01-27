@@ -33,5 +33,7 @@ bring.removeItem(lists['lists'][0]['listUuid'], 'Milk')
 ```
 
 ## Changelog
+### 1.0.1
+Add github repo
 ### 1.0.0 
 Initial release
