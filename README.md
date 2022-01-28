@@ -13,8 +13,8 @@ The developers of this module are in no way endorsed by or affiliated with Bring
 ```python
 from python_bring_api.bring import Bring
 
-# Create Bring instance with username and password
-bring = Bring("USERNAME", "PASSWORD")
+# Create Bring instance with email and password
+bring = Bring("EMAIL", "PASSWORD")
 # Login
 bring.login()
 
