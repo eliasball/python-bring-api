@@ -34,11 +34,19 @@ class Bring:
     
     
     def login(self):
-        """ Try to login. """
+        """
+        Try to login. 
+        
+        Returns
+        -------
+        Response
+            The server response object."""
         try:
             r = requests.post(f'{self.url}bringauth', data=f'email={self.mail}&password={self.password}')
-        except Exception as e:
-            raise Exception('Cannot login: ' + e.with_traceback)
+        except:
+            print('Exception: Cannot login:')
+            traceback.print_exc()
+            raise
         
         data = r.json()
         self.name = data['name']
@@ -57,6 +65,7 @@ class Bring:
             'X-BRING-USER-UUID': self.headers['X-BRING-USER-UUID'],
             'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
         }
+        return r
 
     def loadLists(self):
         """Load all shopping lists.
