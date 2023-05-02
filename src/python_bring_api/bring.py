@@ -108,7 +108,7 @@ class Bring:
 
     def getAllItemDetails(self, listUuid):
         """
-        Get all details from shopping list.
+        Get all details from a shopping list.
 
         Parameters
         ----------
@@ -124,7 +124,7 @@ class Bring:
             r = requests.get(f'{self.url}bringlists/{listUuid}/details', headers = self.headers);
             return r.json();
         except:
-            print(f'Exception: Cannot get items for list {listUuid}:')
+            print(f'Exception: Cannot get item details for list {listUuid}:')
             traceback.print_exc()
             raise
 
