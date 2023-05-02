@@ -96,6 +96,30 @@ class Bring:
             traceback.print_exc()
             raise
 
+
+    def getAllItemDetails(self, listUuid):
+        """
+        Get all details from shopping list.
+
+        Parameters
+        ----------
+        listUuid : str
+            A list uuid returned by loadLists()
+
+        Returns
+        -------
+        list
+            The JSON response as a list.
+        """
+        try:
+            r = requests.get(f'{self.url}bringlists/{listUuid}/details', headers = self.headers);
+            return r.json();
+        except:
+            print(f'Exception: Cannot get items for list {listUuid}:')
+            traceback.print_exc()
+            raise
+
+
     def saveItem(self, listUuid, itemName, specification=''):
         """
         Save an item to a shopping list.
