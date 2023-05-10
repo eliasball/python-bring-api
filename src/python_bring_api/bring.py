@@ -6,7 +6,7 @@ class Bring:
     Unofficial Bring API interface.
     """
 
-    def __init__(self, mail, password, headers):
+    def __init__(self, mail, password, headers = None):
         self.mail = mail
         self.password = password
         self.url = 'https://api.getbring.com/rest/v2/'
