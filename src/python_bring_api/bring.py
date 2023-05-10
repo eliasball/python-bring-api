@@ -6,7 +6,7 @@ class Bring:
     Unofficial Bring API interface.
     """
 
-    def __init__(self, mail, password):
+    def __init__(self, mail, password, headers = None):
         self.mail = mail
         self.password = password
         self.url = 'https://api.getbring.com/rest/v2/'
@@ -14,14 +14,18 @@ class Bring:
         self.name = ''
         self.bearerToken = ''
         self.refreshToken = ''
-        self.headers = {
-            'Authorization': '',
-            'X-BRING-API-KEY': 'cof4Nc6D8saplXjE3h3HXqHH8m7VU2i1Gs0g85Sp',
-            'X-BRING-CLIENT-SOURCE': 'webApp',
-            'X-BRING-CLIENT': 'webApp',
-            'X-BRING-COUNTRY': 'DE',
-            'X-BRING-USER-UUID': ''
-        }
+
+        if headers:
+            self.headers = headers
+        else:
+            self.headers = {
+                'Authorization': '',
+                'X-BRING-API-KEY': 'cof4Nc6D8saplXjE3h3HXqHH8m7VU2i1Gs0g85Sp',
+                'X-BRING-CLIENT-SOURCE': 'webApp',
+                'X-BRING-CLIENT': 'webApp',
+                'X-BRING-COUNTRY': 'DE',
+                'X-BRING-USER-UUID': ''
+            }
         self.putHeaders = {
             'Authorization': '',
             'X-BRING-API-KEY': '',
