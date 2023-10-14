@@ -163,16 +163,16 @@ class Bring:
     
     def updateItem(self, listUuid, itemName, specification=''):
         """
-        Update an existing list item
+        Update an existing list item.
 
         Parameters
         ----------
         listUuid : str
             A list uuid returned by loadLists()
         itemName : str
-            The name of the item you want to save.
+            The name of the item you want to update.
         specification : str, optional
-            The details you want to add to the item.
+            The details you want to update on the item.
 
         Returns
         -------
@@ -184,7 +184,7 @@ class Bring:
                              data=f'&uuid={listUuid}&purchase={itemName}&specification={specification}')
             return r
         except:
-            print(f'Exception: Cannot save item {itemName} ({specification}) to {listUuid}:')
+            print(f'Exception: Cannot update item {itemName} ({specification}) to {listUuid}:')
             traceback.print_exc()
             raise
 
