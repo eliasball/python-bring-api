@@ -71,6 +71,7 @@ class Bring:
         }
         return r
 
+    
     def loadLists(self):
         """Load all shopping lists.
 
@@ -159,6 +160,35 @@ class Bring:
             traceback.print_exc()
             raise
 
+    
+    def updateItem(self, listUuid, itemName, specification=''):
+        """
+        Update an existing list item.
+
+        Parameters
+        ----------
+        listUuid : str
+            A list uuid returned by loadLists()
+        itemName : str
+            The name of the item you want to update.
+        specification : str, optional
+            The details you want to update on the item.
+
+        Returns
+        -------
+        Response
+            The server response object.
+        """
+        try:
+            r = requests.put(f'{self.url}bringlists/{listUuid}', headers=self.putHeaders,
+                             data=f'&uuid={listUuid}&purchase={itemName}&specification={specification}')
+            return r
+        except:
+            print(f'Exception: Cannot update item {itemName} ({specification}) to {listUuid}:')
+            traceback.print_exc()
+            raise
+
+    
     def removeItem(self, listUuid, itemName):
         """
         Remove an item from a shopping list.
