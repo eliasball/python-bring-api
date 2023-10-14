@@ -38,6 +38,10 @@ bring.removeItem(lists['lists'][0]['listUuid'], 'Milk')
 
 ## Changelog
 
+### 1.2.0
+
+Add function to update an item, thanks to [@Dielee](https://github.com/Dielee)!
+
 ### 1.1.2
 
 Add option to provide own headers, thanks to [@Dielee](https://github.com/Dielee)!
