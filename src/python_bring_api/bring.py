@@ -45,8 +45,12 @@ class Bring:
         -------
         Response
             The server response object."""
+        data = {
+            'email': self.mail,
+            'password': self.password
+        }
         try:
-            r = requests.post(f'{self.url}bringauth', data=f'email={self.mail}&password={self.password}')
+            r = requests.post(f'{self.url}bringauth', data=data)
         except:
             print('Exception: Cannot login:')
             traceback.print_exc()
