@@ -38,6 +38,10 @@ bring.removeItem(lists['lists'][0]['listUuid'], 'Milk')
 
 ## Changelog
 
+### 1.2.2
+
+Clean up unused code 🧹
+
 ### 1.2.1
 
 Fix encoding in login request, thanks to [@tony059](https://github.com/tony059)!

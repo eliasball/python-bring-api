@@ -9,11 +9,9 @@ class Bring:
     def __init__(self, mail, password, headers = None):
         self.mail = mail
         self.password = password
-        self.url = 'https://api.getbring.com/rest/v2/'
         self.uuid = ''
-        self.name = ''
-        self.bearerToken = ''
-        self.refreshToken = ''
+
+        self.url = 'https://api.getbring.com/rest/v2/'
 
         if headers:
             self.headers = headers
@@ -57,13 +55,9 @@ class Bring:
             raise
         
         data = r.json()
-        self.name = data['name']
         self.uuid = data['uuid']
-        self.bearerToken = data['access_token']
-        self.refreshToken = data['refresh_token']
-
         self.headers['X-BRING-USER-UUID'] = self.uuid
-        self.headers['Authorization'] = f'Bearer {self.bearerToken}'
+        self.headers['Authorization'] = f'Bearer {data["access_token"]}'
         self.putHeaders = {
             'Authorization': self.headers['Authorization'],
             'X-BRING-API-KEY': self.headers['X-BRING-API-KEY'],
@@ -184,8 +178,7 @@ class Bring:
             The server response object.
         """
         try:
-            r = requests.put(f'{self.url}bringlists/{listUuid}', headers=self.putHeaders,
-                             data=f'&uuid={listUuid}&purchase={itemName}&specification={specification}')
+            r = requests.put(f'{self.url}bringlists/{listUuid}', headers=self.putHeaders, data=f'&uuid={listUuid}&purchase={itemName}&specification={specification}')
             return r
         except:
             print(f'Exception: Cannot update item {itemName} ({specification}) to {listUuid}:')
