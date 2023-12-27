@@ -15,7 +15,11 @@ The developers of this module are in no way endorsed by or affiliated with Bring
 ## Usage Example
 
 ```python
+import logging
+import sys
 from python_bring_api.bring import Bring
+
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 # Create Bring instance with email and password
 bring = Bring("EMAIL", "PASSWORD")
@@ -23,17 +27,17 @@ bring = Bring("EMAIL", "PASSWORD")
 bring.login()
 
 # Get information about all available shopping lists
-lists = bring.loadLists()
+lists = bring.loadLists()["lists"]
 
 # Save an item with specifications to a certain shopping list
-bring.saveItem(lists['lists'][0]['listUuid'], 'Milk', 'low fat')
+bring.saveItem(lists[0]['listUuid'], 'Milk', 'low fat')
 
 # Get all the items of a list
-items = bring.getItems(lists['lists'][0]['listUuid'])
+items = bring.getItems(lists[0]['listUuid'])
 print(items['purchase']) # [{'specification': 'low fat', 'name': 'Milk'}]
 
 # Remove an item from a list
-bring.removeItem(lists['lists'][0]['listUuid'], 'Milk')
+bring.removeItem(lists[0]['listUuid'], 'Milk')
 ```
 
 ## Changelog
