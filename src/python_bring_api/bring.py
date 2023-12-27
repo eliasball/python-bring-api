@@ -1,6 +1,9 @@
 import requests
 import traceback
 from requests.exceptions import RequestException
+from requests.models import Response
+
+from python_bring_api.types import BringAuthResponse, BringItemsResponse, BringListResponse
 from .exceptions import BringError, BringAuthError, BringConnectionError
 
 import logging
@@ -12,7 +15,7 @@ class Bring:
     Unofficial Bring API interface.
     """
 
-    def __init__(self, mail, password, headers = None):
+    def __init__(self, mail: str, password: str, headers: dict[str, str] = None) -> None:
         self.mail = mail
         self.password = password
         self.uuid = ''
@@ -41,7 +44,7 @@ class Bring:
         }
     
     
-    def login(self):
+    def login(self) -> BringAuthResponse:
         """
         Try to login. 
         
@@ -83,7 +86,7 @@ class Bring:
         return r
 
     
-    def loadLists(self):
+    def loadLists(self) -> BringListResponse:
         """Load all shopping lists.
 
         Returns
@@ -103,7 +106,7 @@ class Bring:
             raise BringError(f"Loading lists failed during parsing of request response") from e
 
 
-    def getItems(self, listUuid):
+    def getItems(self, listUuid: str) -> BringItemsResponse:
         """
         Get all items from a shopping list.
 
@@ -130,7 +133,7 @@ class Bring:
             raise BringError(f"Loading list items failed during parsing of request response") from e
 
 
-    def getAllItemDetails(self, listUuid):
+    def getAllItemDetails(self, listUuid: str) -> BringItemsResponse:
         """
         Get all details from a shopping list.
 
@@ -157,7 +160,7 @@ class Bring:
             raise BringError(f"Loading list item details failed during parsing of request response") from e
 
 
-    def saveItem(self, listUuid, itemName, specification=''):
+    def saveItem(self, listUuid: str, itemName: str, specification='') -> Response:
         """
         Save an item to a shopping list.
 
@@ -188,7 +191,7 @@ class Bring:
             raise BringError(f"Saving item failed during parsing of request response") from e
 
     
-    def updateItem(self, listUuid, itemName, specification=''):
+    def updateItem(self, listUuid: str, itemName: str, specification='') -> Response:
         """
         Update an existing list item.
 
@@ -219,7 +222,7 @@ class Bring:
             raise BringError(f"Updating item failed during parsing of request response") from e
 
     
-    def removeItem(self, listUuid, itemName):
+    def removeItem(self, listUuid: str, itemName: str) -> Response:
         """
         Remove an item from a shopping list.
 
