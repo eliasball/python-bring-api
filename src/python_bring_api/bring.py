@@ -1,5 +1,11 @@
 import requests
 import traceback
+from requests.exceptions import RequestException
+from .exceptions import BringError, BringAuthError, BringConnectionError
+
+import logging
+
+_LOGGER = logging.getLogger(__name__)
 
 class Bring:
     """
@@ -49,12 +55,19 @@ class Bring:
         }
         try:
             r = requests.post(f'{self.url}bringauth', data=data)
-        except:
-            print('Exception: Cannot login:')
-            traceback.print_exc()
-            raise
+        except RequestException as e:
+            _LOGGER.error('Exception: Cannot login:')
+            _LOGGER.debug(_LOGGER.debug(traceback.print_exc()))
+            raise BringConnectionError(f"Authentication failed due to request exception") from e
         
-        data = r.json()
+        try:
+            data = r.json()
+        except Exception as e:
+            raise BringError(f"Cannot parse login request response") from e
+        
+        if 'uuid' not in data or 'access_token' not in data:
+            raise BringAuthError('Login failed, please check you email and password')
+        
         self.uuid = data['uuid']
         self.headers['X-BRING-USER-UUID'] = self.uuid
         self.headers['Authorization'] = f'Bearer {data["access_token"]}'
@@ -80,10 +93,14 @@ class Bring:
         try:
             r = requests.get(f'{self.url}bringusers/{self.uuid}/lists', headers=self.headers)
             return r.json()
-        except:
-            print('Exception: Cannot get lists: ')
-            traceback.print_exc()
-            raise
+        except RequestException as e:
+            _LOGGER.error('Exception: Cannot get lists: ')
+            _LOGGER.debug(traceback.print_exc())
+            raise BringConnectionError(f"Loading lists failed due to request exception") from e
+        except Exception as e:
+            _LOGGER.error('Exception: Cannot get lists: ')
+            _LOGGER.debug(traceback.print_exc())
+            raise BringError(f"Loading lists failed during parsing of request response") from e
 
 
     def getItems(self, listUuid):
@@ -101,12 +118,16 @@ class Bring:
             The JSON response as a dict.
         """
         try:
-            r = requests.get(f'{self.url}bringlists/{listUuid}', headers = self.headers);
-            return r.json();
-        except:
-            print(f'Exception: Cannot get items for list {listUuid}:')
-            traceback.print_exc()
-            raise
+            r = requests.get(f'{self.url}bringlists/{listUuid}', headers = self.headers)
+            return r.json()
+        except RequestException as e:
+            _LOGGER.error(f'Exception: Cannot get items for list {listUuid}:')
+            _LOGGER.debug(traceback.print_exc())
+            raise BringConnectionError(f"Loading list items failed due to request exception") from e
+        except Exception as e:
+            _LOGGER.error(f'Exception: Cannot get items for list {listUuid}:')
+            _LOGGER.debug(traceback.print_exc())
+            raise BringError(f"Loading list items failed during parsing of request response") from e
 
 
     def getAllItemDetails(self, listUuid):
@@ -124,12 +145,16 @@ class Bring:
             The JSON response as a list.
         """
         try:
-            r = requests.get(f'{self.url}bringlists/{listUuid}/details', headers = self.headers);
-            return r.json();
-        except:
-            print(f'Exception: Cannot get item details for list {listUuid}:')
-            traceback.print_exc()
-            raise
+            r = requests.get(f'{self.url}bringlists/{listUuid}/details', headers = self.headers)
+            return r.json()
+        except RequestException as e:
+            _LOGGER.error(f'Exception: Cannot get item details for list {listUuid}:')
+            _LOGGER.debug(traceback.print_exc())
+            raise BringConnectionError(f"Loading list item details failed due to request exception") from e
+        except Exception as e:
+            _LOGGER.error(f'Exception: Cannot get item details for list {listUuid}:')
+            _LOGGER.debug(traceback.print_exc())
+            raise BringError(f"Loading list item details failed during parsing of request response") from e
 
 
     def saveItem(self, listUuid, itemName, specification=''):
@@ -153,10 +178,14 @@ class Bring:
         try:
             r = requests.put(f'{self.url}bringlists/{listUuid}', headers=self.putHeaders, data=f'&purchase={itemName}&recently=&specification={specification}&remove=&sender=null')
             return r
-        except:
-            print(f'Exception: Cannot save item {itemName} ({specification}) to {listUuid}:')
-            traceback.print_exc()
-            raise
+        except RequestException as e:
+            _LOGGER.error(f'Exception: Cannot save item {itemName} ({specification}) to list {listUuid}:')
+            _LOGGER.debug(traceback.print_exc())
+            raise BringConnectionError(f"Saving item failed due to request exception") from e
+        except Exception as e:
+            _LOGGER.error(f'Exception: Cannot save item {itemName} ({specification}) to list {listUuid}:')
+            _LOGGER.debug(traceback.print_exc())
+            raise BringError(f"Saving item failed during parsing of request response") from e
 
     
     def updateItem(self, listUuid, itemName, specification=''):
@@ -180,10 +209,14 @@ class Bring:
         try:
             r = requests.put(f'{self.url}bringlists/{listUuid}', headers=self.putHeaders, data=f'&uuid={listUuid}&purchase={itemName}&specification={specification}')
             return r
-        except:
-            print(f'Exception: Cannot update item {itemName} ({specification}) to {listUuid}:')
-            traceback.print_exc()
-            raise
+        except RequestException as e:
+            _LOGGER.error(f'Exception: Cannot update item {itemName} ({specification}) to list {listUuid}:')
+            _LOGGER.debug(traceback.print_exc())
+            raise BringConnectionError(f"Updating item failed due to request exception") from e
+        except Exception as e:
+            _LOGGER.error(f'Exception: Cannot update item {itemName} ({specification}) to list {listUuid}:')
+            _LOGGER.debug(traceback.print_exc())
+            raise BringError(f"Updating item failed during parsing of request response") from e
 
     
     def removeItem(self, listUuid, itemName):
@@ -205,7 +238,11 @@ class Bring:
         try:
             r = requests.put(f'{self.url}bringlists/{listUuid}', headers=self.putHeaders, data=f'&purchase=&recently=&specification=&remove={itemName}&sender=null')
             return r
-        except:
-            print(f'Exception: Cannot remove item {itemName} from {listUuid}:')
-            traceback.print_exc()
-            raise
+        except RequestException as e:
+            _LOGGER.error(f'Exception: Cannot remove item {itemName} to list {listUuid}:')
+            _LOGGER.debug(traceback.print_exc())
+            raise BringConnectionError(f"Removing item failed due to request exception") from e
+        except Exception as e:
+            _LOGGER.error(f'Exception: Cannot remove item {itemName} to list {listUuid}:')
+            _LOGGER.debug(traceback.print_exc())
+            raise BringError(f"Removing item failed during parsing of request response") from e

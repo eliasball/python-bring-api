@@ -1,4 +1,7 @@
 dist/
 src/python_bring_api.egg-info/
+src/test.py
 HOW-TO-UPLOAD.md
 test/
+.venv
+__pycache__
