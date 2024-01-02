@@ -49,7 +49,9 @@ They will either be BringRequestException, BringParseException, or BringAuthExce
 ### 2.0.0
 
 Add exceptions and typings, thanks to [@miaucl](https://github.com/miaucl)!
+
 Important: Unsuccessful HTTP status codes will now raise an exception.
+
 Module now requires Python version >= 3.8.
 
 ### 1.2.2
