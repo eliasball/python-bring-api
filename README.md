@@ -40,7 +40,17 @@ print(items['purchase']) # [{'specification': 'low fat', 'name': 'Milk'}]
 bring.removeItem(lists[0]['listUuid'], 'Milk')
 ```
 
+## Exceptions
+In case something goes wrong during a request, several exceptions can be thrown.
+They will either be BringRequestException, BringParseException, or BringAuthException, depending on the context. All inherit from BringException.
+
 ## Changelog
+
+### 2.0.0
+
+Add exceptions and typings, thanks to [@miaucl](https://github.com/miaucl)!
+Important: Unsuccessful HTTP status codes will now raise an exception.
+Module now requires Python version >= 3.8.
 
 ### 1.2.2
 
