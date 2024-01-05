@@ -73,9 +73,13 @@ class Bring:
             r = requests.post(f'{self.url}bringauth', data=data)
             r.raise_for_status()
         except RequestException as e:
-            if e.response.status_code == 401: 
-                errmsg = e.response.json()
-                _LOGGER.error(f'Exception: Cannot login: {errmsg['message']}') 
+            if e.response.status_code == 401:
+                try:
+                    errmsg = e.response.json()
+                except JSONDecodeError:
+                    _LOGGER.error(f'Exception: Cannot parse login request response:\n{traceback.format_exc()}')
+                else:
+                    _LOGGER.error(f'Exception: Cannot login: {errmsg['message']}') 
                 raise BringAuthException('Login failed due to authorization failure, please check your email and password.') from e
             elif e.response.status_code == 400:
                 _LOGGER.error(f'Exception: Cannot login: {e.response.text}') 
