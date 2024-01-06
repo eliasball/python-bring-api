@@ -293,3 +293,34 @@ class Bring:
         except RequestException as e:
             _LOGGER.error(f'Exception: Could not remove item {itemName} from list {listUuid}:\n{traceback.format_exc()}')
             raise BringRequestException(f'Removing item {itemName} from list {listUuid} failed due to request exception.') from e
+
+
+    def completeItem(self, listUuid: str, itemName: str, specification: str = '') -> Response:
+        """
+        Complete an item from a shopping list (add to recent items).
+
+        Parameters
+        ----------
+        listUuid : str
+            A list uuid returned by loadLists()
+        itemName : str
+            The name of the item you want to add to recent items.
+        specification : str, optional
+            The details of the item you want to add to recent items.
+        Returns
+        -------
+        Response
+            The server response object.
+
+        Raises
+        ------
+        BringRequestException
+            If the request fails.
+        """
+        try:
+            r = requests.put(f'{self.url}bringlists/{listUuid}', headers=self.putHeaders, data=f'&uuid={listUuid}&&recently={itemName}&specification={specification}')
+            r.raise_for_status()
+            return r
+        except RequestException as e:
+            _LOGGER.error(f'Exception: Could not complete item {itemName} from list {listUuid}:\n{traceback.format_exc()}')
+            raise BringRequestException(f'Removing item {itemName} from list {listUuid} failed due to request exception.') from e
