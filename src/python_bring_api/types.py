@@ -1,6 +1,19 @@
 from typing import TypedDict
 from typing import List
+from enum import Enum
 
+class NOTIFICATION_TYPE(Enum):
+    """Notification type
+    
+    GOING_SHOPPING: "I'm going shopping! - Last chance for adjustments"
+    CHANGED_LIST: "List changed - Check it out"
+    SHOPPING_DONE: "Shopping done - you can relax"
+    URGENT_MESSAGE: "Breaking news - Please get {itemName}! 
+    """
+    GOING_SHOPPING = "GOING_SHOPPING"
+    CHANGED_LIST = "CHANGED_LIST"
+    SHOPPING_DONE = "SHOPPING_DONE"
+    URGENT_MESSAGE = "URGENT_MESSAGE"
 
 class BringList(TypedDict):
     """A list class. Represents a single list."""
