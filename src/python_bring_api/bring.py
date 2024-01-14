@@ -5,7 +5,7 @@ from requests.exceptions import JSONDecodeError
 from requests.models import Response
 from typing import Dict
 
-from .types import NOTIFICATION_TYPE, BringAuthResponse, BringItemsResponse, BringListResponse, BringListItemsDetailsResponse
+from .types import BringNotificationType, BringAuthResponse, BringItemsResponse, BringListResponse, BringListItemsDetailsResponse
 from .exceptions import BringAuthException, BringRequestException, BringParseException
 
 import logging
@@ -88,7 +88,7 @@ class Bring:
             raise BringAuthException('Login failed due to missing data in the API response, please check your email and password.')
         
         self.uuid = data['uuid']
-        self.publicUuid = data.get('publicUuid', "")
+        self.publicUuid = data.get('publicUuid', '')
         self.headers['X-BRING-USER-UUID'] = self.uuid
         self.headers['Authorization'] = f'Bearer {data["access_token"]}'
         self.putHeaders = {
@@ -297,7 +297,7 @@ class Bring:
             raise BringRequestException(f'Removing item {itemName} from list {listUuid} failed due to request exception.') from e
 
 
-    def notify(self, listUuid: str, notificationType: NOTIFICATION_TYPE, itemName: str = None) -> Response:
+    def notify(self, listUuid: str, notificationType: BringNotificationType, itemName: str = None) -> Response:
         """
         Send a push notification to all other members of a shared list.
 
@@ -305,9 +305,9 @@ class Bring:
         ----------
         listUuid : str
             A list uuid returned by loadLists()
-        notificationType : NOTIFICATION_TYPE
+        notificationType : BringNotificationType
         itemName : str, optional
-            The text that **must** be included in the URGENT_MESSAGE.
+            The text that **must** be included in the URGENT_MESSAGE BringNotificationType.
 
         Returns
         -------
@@ -321,23 +321,23 @@ class Bring:
         """
 
         json = {
-            "arguments": [],
-            "listNotificationType": notificationType,
-            "senderPublicUserUuid": self.publicUuid
+            'arguments': [],
+            'listNotificationType': notificationType.value,
+            'senderPublicUserUuid': self.publicUuid
         }
 
-        if not isinstance(notificationType, NOTIFICATION_TYPE):
+        if not isinstance(notificationType, BringNotificationType):
             _LOGGER.error(f'Exception: notificationType {notificationType} not supported.')
-            raise ValueError(f'notificationType {notificationType} not supported, must be of type NOTIFICATION_TYPE.')
-        if notificationType == "URGENT_MESSAGE":
+            raise ValueError(f'notificationType {notificationType} not supported, must be of type BringNotificationType.')
+        if notificationType is BringNotificationType.URGENT_MESSAGE:
             if not itemName or len(itemName) == 0 :
-                _LOGGER.error('Exception: argument itemName missing.')
+                _LOGGER.error('Exception: Argument itemName missing.')
                 raise ValueError('notificationType is URGENT_MESSAGE but argument itemName missing.')
             else:
-                json["arguments"] = [itemName]
+                json['arguments'] = [itemName]
 
-        headers=self.putHeaders
-        headers["Content-Type"] = "application/json; charset=UTF-8"
+        headers = self.putHeaders
+        headers['Content-Type'] = 'application/json; charset=UTF-8'
         try:
             r = requests.post(f'{self.url}bringnotifications/lists/{listUuid}', headers=headers, json=json)
             r.raise_for_status()
