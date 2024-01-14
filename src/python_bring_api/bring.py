@@ -79,7 +79,7 @@ class Bring:
                 except JSONDecodeError:
                     _LOGGER.error(f'Exception: Cannot parse login request response:\n{traceback.format_exc()}')
                 else:
-                    _LOGGER.error(f'Exception: Cannot login: {errmsg['message']}') 
+                    _LOGGER.error(f'Exception: Cannot login: {errmsg["message"]}') 
                 raise BringAuthException('Login failed due to authorization failure, please check your email and password.') from e
             elif e.response.status_code == 400:
                 _LOGGER.error(f'Exception: Cannot login: {e.response.text}') 
