@@ -366,7 +366,7 @@ class Bring:
             else:
                 json['arguments'] = [itemName]
 
-        headers = self.putHeaders
+        headers = self.putHeaders.copy()
         headers['Content-Type'] = 'application/json; charset=UTF-8'
         try:
             r = requests.post(f'{self.url}bringnotifications/lists/{listUuid}', headers=headers, json=json)
