@@ -46,6 +46,14 @@ They will either be BringRequestException, BringParseException, or BringAuthExce
 
 ## Changelog
 
+### 2.1.0
+
+Add notify() method to send push notifications to other list members, thanks to [@tr4nt0r](https://github.com/tr4nt0r)!
+
+Add method to complete items, thanks to [@tr4nt0r](https://github.com/tr4nt0r)!
+
+Fix error handling in login method, thanks to [@tr4nt0r](https://github.com/tr4nt0r)!
+
 ### 2.0.0
 
 Add exceptions and typings, thanks to [@miaucl](https://github.com/miaucl)!
