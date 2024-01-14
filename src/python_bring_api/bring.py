@@ -74,8 +74,20 @@ class Bring:
             r = requests.post(f'{self.url}bringauth', data=data)
             r.raise_for_status()
         except RequestException as e:
-            _LOGGER.error(f'Exception: Cannot login:\n{traceback.format_exc()}')
-            raise BringRequestException(f'Authentication failed due to request exception.') from e
+            if e.response.status_code == 401:
+                try:
+                    errmsg = e.response.json()
+                except JSONDecodeError:
+                    _LOGGER.error(f'Exception: Cannot parse login request response:\n{traceback.format_exc()}')
+                else:
+                    _LOGGER.error(f'Exception: Cannot login: {errmsg["message"]}') 
+                raise BringAuthException('Login failed due to authorization failure, please check your email and password.') from e
+            elif e.response.status_code == 400:
+                _LOGGER.error(f'Exception: Cannot login: {e.response.text}') 
+                raise BringAuthException('Login failed due to bad request, please check your email.') from e
+            else:
+                _LOGGER.error(f'Exception: Cannot login:\n{traceback.format_exc()}')
+                raise BringRequestException(f'Authentication failed due to request exception.') from e
         
         try:
             data = r.json()
