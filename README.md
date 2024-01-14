@@ -42,6 +42,13 @@ async def main():
     items = bring.getItems(lists[0]['listUuid'])
     print(items)
 
+    # Check of an item
+    bring.completeItem(lists[0]['listUuid'], items["purchase"][0]['name'])
+
+    # Get all the recent items of a list
+    items = bring.getItems(lists[0]['listUuid'])
+    print(items)
+
     # Remove an item from a list
     bring.removeItem(lists[0]['listUuid'], 'Milk')
 
@@ -74,6 +81,13 @@ async def main():
     await bring.saveItemAsync(lists[0]['listUuid'], 'Milk', 'low fat')
 
     # Get all the items of a list
+    items = await bring.getItemsAsync(lists[0]['listUuid'])
+    print(items)
+
+    # Check of an item
+    await bring.completeItemAsync(lists[0]['listUuid'], items["purchase"][0]['name'])
+
+    # Get all the recent items of a list
     items = await bring.getItemsAsync(lists[0]['listUuid'])
     print(items)
 
