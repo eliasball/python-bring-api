@@ -239,7 +239,12 @@ class Bring:
             If the request fails.
         """
         try:
-            r = requests.put(f'{self.url}bringlists/{listUuid}', headers=self.putHeaders, data=f'&purchase={itemName}&recently=&specification={specification}&remove=&sender=null')
+            r = requests.put(f'{self.url}bringlists/{listUuid}', headers=self.putHeaders, data={
+                "uuid": listUuid,
+                "purchase": itemName, 
+                "recently": None, 
+                "specification": specification,
+            })
             r.raise_for_status()
             return r
         except RequestException as e:
@@ -271,7 +276,12 @@ class Bring:
             If the request fails.
         """
         try:
-            r = requests.put(f'{self.url}bringlists/{listUuid}', headers=self.putHeaders, data=f'&uuid={listUuid}&purchase={itemName}&specification={specification}')
+            r = requests.put(f'{self.url}bringlists/{listUuid}', headers=self.putHeaders, data={
+                "uuid": listUuid,
+                "purchase": itemName, 
+                "specification": specification,
+            })
+
             r.raise_for_status()
             return r
         except RequestException as e:
@@ -301,7 +311,10 @@ class Bring:
             If the request fails.
         """
         try:
-            r = requests.put(f'{self.url}bringlists/{listUuid}', headers=self.putHeaders, data=f'&purchase=&recently=&specification=&remove={itemName}&sender=null')
+            r = requests.put(f'{self.url}bringlists/{listUuid}', headers=self.putHeaders, data={
+                "remove": itemName, 
+            })
+
             r.raise_for_status()
             return r
         except RequestException as e:
@@ -332,7 +345,10 @@ class Bring:
             If the request fails.
         """
         try:
-            r = requests.put(f'{self.url}bringlists/{listUuid}', headers=self.putHeaders, data=f'&uuid={listUuid}&recently={itemName}')
+            r = requests.put(f'{self.url}bringlists/{listUuid}', headers=self.putHeaders, data={
+                "uuid": listUuid,
+                "recently": itemName, 
+            })
             r.raise_for_status()
             return r
         except RequestException as e:
