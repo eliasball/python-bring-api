@@ -5,7 +5,7 @@ from requests.exceptions import JSONDecodeError
 from requests.models import Response
 from typing import Dict
 
-from .types import BringNotificationType, BringAuthResponse, BringItemsResponse, BringListResponse, BringListItemsDetailsResponse
+from .types import BringCheckEmailResponse, BringNotificationType, BringAuthResponse, BringItemsResponse, BringListResponse, BringListItemsDetailsResponse
 from .exceptions import BringAuthException, BringRequestException, BringParseException
 
 import logging
@@ -387,3 +387,37 @@ class Bring:
         except RequestException as e:
             _LOGGER.error(f'Exception: Could not send notification {notificationType} for list {listUuid}:\n{traceback.format_exc()}')
             raise BringRequestException(f'Sending notification {notificationType} for list {listUuid} failed due to request exception.') from e
+        
+        
+    def checkemail(self, mail: str = None) -> BringCheckEmailResponse:
+        """
+        Validate if an e-mail is valid and if user exists.
+
+        Returns
+        -------
+        dict
+            The JSON response as a dict.
+
+         Raises
+        ------
+        BringRequestException
+            If the request fails.
+        BringParseException
+            If the parsing of the request response fails.
+        """
+        mail = self.mail if not mail else mail
+
+        payload = { 'email': mail }
+        
+        try:
+            r = requests.get(f'{self.url}bringauth/checkemail', headers = self.headers, params=payload)
+            r.raise_for_status()
+        except RequestException as e:
+            _LOGGER.error(f'Exception: Cannot get verification for {mail}:\n{traceback.format_exc()}')
+            raise BringRequestException(f'Verifying email failed due to request exception.') from e
+        
+        try:
+            return r.json()
+        except JSONDecodeError as e:
+            _LOGGER.error(f'Exception: Cannot get verification for {mail}:\n{traceback.format_exc()}')
+            raise BringParseException(f'Verifying email failed during parsing of request response.') from e
