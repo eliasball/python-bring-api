@@ -5,7 +5,7 @@ from requests.exceptions import JSONDecodeError
 from requests.models import Response
 from typing import Dict
 
-from .types import BringNotificationType, BringAuthResponse, BringItemsResponse, BringListResponse, BringListItemsDetailsResponse
+from .types import BringNotificationType, BringAuthResponse, BringItemsResponse, BringListResponse, BringListItemsDetailsResponse, BringRefreshTokenRespone
 from .exceptions import BringAuthException, BringRequestException, BringParseException
 
 import logging
@@ -17,7 +17,7 @@ class Bring:
     Unofficial Bring API interface.
     """
 
-    def __init__(self, mail: str, password: str, headers: Dict[str, str] = None) -> None:
+    def __init__(self, mail: str, password: str, headers: Dict[str, str] = None, access_token: str = None) -> None:
         self.mail = mail
         self.password = password
         self.uuid = ''
@@ -25,11 +25,13 @@ class Bring:
 
         self.url = 'https://api.getbring.com/rest/v2/'
 
+        authorization = f'Bearer {access_token}' if access_token else ''
+
         if headers:
             self.headers = headers
         else:
             self.headers = {
-                'Authorization': '',
+                'Authorization': authorization,
                 'X-BRING-API-KEY': 'cof4Nc6D8saplXjE3h3HXqHH8m7VU2i1Gs0g85Sp',
                 'X-BRING-CLIENT-SOURCE': 'webApp',
                 'X-BRING-CLIENT': 'webApp',
@@ -37,7 +39,7 @@ class Bring:
                 'X-BRING-USER-UUID': ''
             }
         self.putHeaders = {
-            'Authorization': '',
+            'Authorization': authorization,
             'X-BRING-API-KEY': '',
             'X-BRING-CLIENT-SOURCE': '',
             'X-BRING-CLIENT': '',
@@ -45,6 +47,7 @@ class Bring:
             'X-BRING-USER-UUID': '',
             'Content-Type': ''
         }
+
     
     
     def login(self) -> BringAuthResponse:
@@ -101,6 +104,7 @@ class Bring:
         
         self.uuid = data['uuid']
         self.publicUuid = data.get('publicUuid', '')
+
         self.headers['X-BRING-USER-UUID'] = self.uuid
         self.headers['Authorization'] = f'Bearer {data["access_token"]}'
         self.putHeaders = {
@@ -113,7 +117,35 @@ class Bring:
             'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
         }
         return r
+    
+    def refreshToken(self, refreshToken: str = None) -> BringRefreshTokenRespone:
+        """Refresh the access token."""
 
+        data = {
+            'grant_type': 'refresh_token',
+            'refresh_token': refreshToken
+        }
+        try:
+            r = requests.post(f'{self.url}bringauth/token', headers=self.headers, data=data)
+            r.raise_for_status()
+        except RequestException as e:
+            if e.response.status_code == 401:
+                try:
+                    errmsg = e.response.json()
+                except JSONDecodeError:
+                    _LOGGER.error(f'Exception: Cannot parse token request response:\n{traceback.format_exc()}')
+                else:
+                    _LOGGER.error(f'Exception: Cannot authenticate: {errmsg["message"]}') 
+                raise BringAuthException('Authentication failed due to invalid refresh token. Re-authentication required.') from e
+            else:
+                _LOGGER.error(f'Exception: Cannot get :\n{traceback.format_exc()}')
+                raise BringRequestException(f'Authentication failed due to request exception.') from e
+
+        data = r.json()
+
+        self.headers['Authorization'] = f'Bearer {data["access_token"]}'
+
+        return data
     
     def loadLists(self) -> BringListResponse:
         """Load all shopping lists.

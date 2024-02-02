@@ -69,3 +69,11 @@ class BringNotificationType(Enum):
     CHANGED_LIST = "CHANGED_LIST"
     SHOPPING_DONE = "SHOPPING_DONE"
     URGENT_MESSAGE = "URGENT_MESSAGE"
+
+class BringRefreshTokenRespone(TypedDict):
+    """A refresh token response class."""
+
+    access_token: str
+    refresh_token: str
+    token_type: str
+    expires_in: int
