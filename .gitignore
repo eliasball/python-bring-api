@@ -1,6 +1,6 @@
 dist/
 src/python_bring_api.egg-info/
-src/test.py
+src/test*.py
 HOW-TO-UPLOAD.md
 HOW-TO-TEST.md
 test/
