@@ -5,7 +5,7 @@ import traceback
 from typing import Dict
 
 from .types import BringNotificationType, BringAuthResponse, BringItemsResponse, BringListResponse, BringListItemsDetailsResponse
-from .exceptions import BringRequestException, BringAuthException, BringRequestException, BringParseException
+from .exceptions import BringAuthException, BringRequestException, BringParseException
 
 import logging
 
@@ -110,23 +110,36 @@ class Bring:
         
         try:
             url = f'{self.url}bringauth'
-            async with self._session.post(url, data=data, raise_for_status=True) as r:
-                _LOGGER.debug(f"Response from %s: %s", url, r.status)
+            async with self._session.post(url, data=data) as r:
+                _LOGGER.debug(f'Response from %s: %s', url, r.status)
+
+                if r.status == 401:
+                    try:
+                        errmsg = await r.json()
+                    except JSONDecodeError:
+                        _LOGGER.error(f'Exception: Cannot parse login request response:\n{traceback.format_exc()}')
+                    else:
+                        _LOGGER.error(f'Exception: Cannot login: {errmsg["message"]}') 
+                    raise BringAuthException('Login failed due to authorization failure, please check your email and password.')
+                elif r.status == 400:
+                    _LOGGER.error(f'Exception: Cannot login: {await r.text()}') 
+                    raise BringAuthException('Login failed due to bad request, please check your email.')
                 r.raise_for_status()
+
                 try:
                     data = await r.json()
                 except JSONDecodeError as e:
                     _LOGGER.error(f'Exception: Cannot login:\n{traceback.format_exc()}')
                     raise BringParseException(f'Cannot parse login request response.') from e
         except asyncio.TimeoutError as e:
-            _LOGGER.error('Exception: Cannot login:\n{traceback.format_exc()}')
-            raise BringRequestException(f"Authentication failed due to connection timeout") from e
+            _LOGGER.error(f'Exception: Cannot login:\n{traceback.format_exc()}')
+            raise BringRequestException('Authentication failed due to connection timeout.') from e
         except aiohttp.ClientError as e:
-            _LOGGER.error('Exception: Cannot login:\n{traceback.format_exc()}')
-            raise BringRequestException(f"Authentication failed due to request exception") from e
+            _LOGGER.error(f'Exception: Cannot login:\n{traceback.format_exc()}')
+            raise BringRequestException(f'Authentication failed due to request exception.') from e
         
         if 'uuid' not in data or 'access_token' not in data:
-            _LOGGER.error(f'Exception: Cannot login: Data missing in API response.')
+            _LOGGER.error('Exception: Cannot login: Data missing in API response.')
             raise BringAuthException('Login failed due to missing data in the API response, please check your email and password.')
         
         self.uuid = data['uuid']
@@ -141,7 +154,7 @@ class Bring:
             **self.headers,
             'Content-Type': 'application/json; charset=UTF-8'
         }
-        return r
+        return data
 
     def loadLists(self) -> BringListResponse:
         """Load all shopping lists.
@@ -185,20 +198,21 @@ class Bring:
         """
         try:
             url = f'{self.url}bringusers/{self.uuid}/lists'
-            async with self._session.get(url, headers=self.headers, raise_for_status=True) as r:
-                _LOGGER.debug(f"Response from %s: %s", url, r.status)
+            async with self._session.get(url, headers=self.headers) as r:
+                _LOGGER.debug(f'Response from %s: %s', url, r.status)
                 r.raise_for_status()
+
                 try: 
                     return await r.json()
                 except JSONDecodeError as e:
                     _LOGGER.error(f'Exception: Cannot get lists:\n{traceback.format_exc()}')
                     raise BringParseException(f'Loading lists failed during parsing of request response.') from e
         except asyncio.TimeoutError as e:
-            _LOGGER.error('Exception: Cannot get lists:\n{traceback.format_exc()}')
-            raise BringRequestException(f"Loading list failed due to connection timeout") from e
+            _LOGGER.error(f'Exception: Cannot get lists:\n{traceback.format_exc()}')
+            raise BringRequestException('Loading list failed due to connection timeout.') from e
         except aiohttp.ClientError as e:
-            _LOGGER.error('Exception: Cannot get lists:\n{traceback.format_exc()}')
-            raise BringRequestException(f"Loading lists failed due to request exception") from e
+            _LOGGER.error(f'Exception: Cannot get lists:\n{traceback.format_exc()}')
+            raise BringRequestException('Loading lists failed due to request exception.') from e
 
     def getItems(self, listUuid: str) -> BringItemsResponse:
         """
@@ -252,20 +266,21 @@ class Bring:
         """
         try:
             url = f'{self.url}bringlists/{listUuid}'
-            async with self._session.get(url, headers=self.headers, raise_for_status=True) as r:
-                _LOGGER.debug(f"Response from %s: %s", url, r.status)
+            async with self._session.get(url, headers=self.headers) as r:
+                _LOGGER.debug(f'Response from %s: %s', url, r.status)
                 r.raise_for_status()
+
                 try:
                     return await r.json()
                 except JSONDecodeError as e:
                     _LOGGER.error(f'Exception: Cannot get items for list {listUuid}:\n{traceback.format_exc()}')
-                    raise BringParseException(f'Loading list items failed during parsing of request response.') from e
+                    raise BringParseException('Loading list items failed during parsing of request response.') from e
         except asyncio.TimeoutError as e:
             _LOGGER.error(f'Exception: Cannot get items for list {listUuid}:\n{traceback.format_exc()}')
-            raise BringRequestException(f"Loading list items failed due to connection timeout") from e
+            raise BringRequestException('Loading list items failed due to connection timeout.') from e
         except aiohttp.ClientError as e:
             _LOGGER.error(f'Exception: Cannot get items for list {listUuid}:\n{traceback.format_exc()}')
-            raise BringRequestException(f"Loading list items failed due to request exception") from e
+            raise BringRequestException('Loading list items failed due to request exception.') from e
 
 
     def getAllItemDetails(self, listUuid: str) -> BringListItemsDetailsResponse:
@@ -322,20 +337,21 @@ class Bring:
         """
         try:
             url = f'{self.url}bringlists/{listUuid}/details'
-            async with self._session.get(url, headers=self.headers, raise_for_status=True) as r:
-                _LOGGER.debug(f"Response from %s: %s", url, r.status)
+            async with self._session.get(url, headers=self.headers) as r:
+                _LOGGER.debug(f'Response from %s: %s', url, r.status)
                 r.raise_for_status()
+
                 try:
                     return await r.json()
                 except JSONDecodeError as e:
                     _LOGGER.error(f'Exception: Cannot get item details for list {listUuid}:\n{traceback.format_exc()}')
-                    raise BringParseException(f'Loading list item details failed during parsing of request response.') from e
+                    raise BringParseException(f'Loading list details failed during parsing of request response.') from e
         except asyncio.TimeoutError as e:
             _LOGGER.error(f'Exception: Cannot get item details for list {listUuid}:\n{traceback.format_exc()}')
-            raise BringRequestException(f"Loading list item details failed due to connection timeout") from e
+            raise BringRequestException('Loading list details failed due to connection timeout.') from e
         except aiohttp.ClientError as e:
             _LOGGER.error(f'Exception: Cannot get item details for list {listUuid}:\n{traceback.format_exc()}')
-            raise BringRequestException(f"Loading list item details failed due to request exception") from e
+            raise BringRequestException('Loading list details failed due to request exception.') from e
 
     def saveItem(self, listUuid: str, itemName: str, specification='') -> aiohttp.ClientResponse:
         """
@@ -391,18 +407,22 @@ class Bring:
         BringRequestException
             If the request fails.
         """
+        data = {
+            'purchase': itemName,
+            'specification': specification,
+        }
         try:
             url = f'{self.url}bringlists/{listUuid}'
-            async with self._session.put(url, headers=self.putHeaders, data=f'&purchase={itemName}&recently=&specification={specification}&remove=&sender=null',  raise_for_status=True) as r:
-                _LOGGER.debug(f"Response from %s: %s", url, r.status)
+            async with self._session.put(url, headers=self.putHeaders, data=data) as r:
+                _LOGGER.debug(f'Response from %s: %s', url, r.status)
                 r.raise_for_status()
                 return r
         except asyncio.TimeoutError as e:
             _LOGGER.error(f'Exception: Cannot save item {itemName} ({specification}) to list {listUuid}:\n{traceback.format_exc()}')
-            raise BringRequestException(f"Saving item {itemName} ({specification}) to list {listUuid} failed due to connection timeout") from e
+            raise BringRequestException(f'Saving item {itemName} ({specification}) to list {listUuid} failed due to connection timeout.') from e
         except aiohttp.ClientError as e:
             _LOGGER.error(f'Exception: Cannot save item {itemName} ({specification}) to list {listUuid}:\n{traceback.format_exc()}')
-            raise BringRequestException(f"Saving item {itemName} ({specification}) to list {listUuid} failed due to request exception") from e
+            raise BringRequestException(f'Saving item {itemName} ({specification}) to list {listUuid} failed due to request exception.') from e
 
     
     def updateItem(self, listUuid: str, itemName: str, specification='') -> aiohttp.ClientResponse:
@@ -459,18 +479,22 @@ class Bring:
         BringRequestException
             If the request fails.
         """
+        data = {
+            'purchase': itemName,
+            'specification': specification
+        }
         try:
             url = f'{self.url}bringlists/{listUuid}'
-            async with self._session.put(url, headers=self.putHeaders, data=f'&uuid={listUuid}&purchase={itemName}&specification={specification}', raise_for_status=True) as r:
-                _LOGGER.debug(f"Response from %s: %s", url, r.status)
+            async with self._session.put(url, headers=self.putHeaders, data=data) as r:
+                _LOGGER.debug(f'Response from %s: %s', url, r.status)
                 r.raise_for_status()
                 return r
         except asyncio.TimeoutError as e:
             _LOGGER.error(f'Exception: Cannot update item {itemName} ({specification}) to list {listUuid}:\n{traceback.format_exc()}')
-            raise BringRequestException(f"Updating item {itemName} ({specification}) in list {listUuid} failed due to connection timeout") from e
+            raise BringRequestException(f'Updating item {itemName} ({specification}) in list {listUuid} failed due to connection timeout.') from e
         except aiohttp.ClientError as e:
             _LOGGER.error(f'Exception: Cannot update item {itemName} ({specification}) to list {listUuid}:\n{traceback.format_exc()}')
-            raise BringRequestException(f"Updating item {itemName} ({specification}) in list {listUuid} failed due to request exception") from e
+            raise BringRequestException(f'Updating item {itemName} ({specification}) in list {listUuid} failed due to request exception.') from e
 
     
     def removeItem(self, listUuid: str, itemName: str) -> aiohttp.ClientResponse:
@@ -523,20 +547,21 @@ class Bring:
         BringRequestException
             If the request fails.
         """
+        data = {
+            'remove': itemName,
+        }
         try:
             url = f'{self.url}bringlists/{listUuid}'
-            async with self._session.put(url, headers=self.putHeaders, data=f'&purchase=&recently=&specification=&remove={itemName}&sender=null',  raise_for_status=True) as r:
-                _LOGGER.debug(f"Response from %s: %s", url, r.status)
+            async with self._session.put(url, headers=self.putHeaders, data=data) as r:
+                _LOGGER.debug(f'Response from %s: %s', url, r.status)
                 r.raise_for_status()
                 return r
         except asyncio.TimeoutError as e:
             _LOGGER.error(f'Exception: Cannot remove item {itemName} to list {listUuid}:\n{traceback.format_exc()}')
-            _LOGGER.debug(_LOGGER.debug(traceback.print_exc()))
-            raise BringRequestException(f"Removing item {itemName} from list {listUuid} failed due to connection timeout") from e
+            raise BringRequestException(f'Removing item {itemName} from list {listUuid} failed due to connection timeout.') from e
         except aiohttp.ClientError as e:
             _LOGGER.error(f'Exception: Cannot remove item {itemName} to list {listUuid}:\n{traceback.format_exc()}')
-            _LOGGER.debug(traceback.print_exc())
-            raise BringRequestException(f"Removing item {itemName} from list {listUuid} failed due to request exception") from e
+            raise BringRequestException(f'Removing item {itemName} from list {listUuid} failed due to request exception.') from e
 
     def completeItem(self, listUuid: str, itemName: str) -> aiohttp.ClientResponse:
         """
@@ -591,20 +616,21 @@ class Bring:
         BringRequestException
             If the request fails.
         """
+        data = {
+            'recently': itemName
+        }
         try:
             url = f'{self.url}bringlists/{listUuid}'
-            async with self._session.put(url, headers=self.putHeaders, data=f'&uuid={listUuid}&recently={itemName}',  raise_for_status=True) as r:
-                _LOGGER.debug(f"Response from %s: %s", url, r.status)
+            async with self._session.put(url, headers=self.putHeaders, data=data) as r:
+                _LOGGER.debug(f'Response from %s: %s', url, r.status)
                 r.raise_for_status()
                 return r
         except asyncio.TimeoutError as e:
             _LOGGER.error(f'Exception: Cannot complete item {itemName} to list {listUuid}:\n{traceback.format_exc()}')
-            _LOGGER.debug(_LOGGER.debug(traceback.print_exc()))
-            raise BringRequestException(f"Completing item {itemName} from list {listUuid} failed due to connection timeout") from e
+            raise BringRequestException(f'Completing item {itemName} from list {listUuid} failed due to connection timeout.') from e
         except aiohttp.ClientError as e:
             _LOGGER.error(f'Exception: Cannot complete item {itemName} to list {listUuid}:\n{traceback.format_exc()}')
-            _LOGGER.debug(traceback.print_exc())
-            raise BringRequestException(f"Completing item {itemName} from list {listUuid} failed due to request exception") from e
+            raise BringRequestException(f'Completing item {itemName} from list {listUuid} failed due to request exception.') from e
 
 
     def notify(self, listUuid: str, notificationType: BringNotificationType, itemName: str = None) -> aiohttp.ClientResponse:
@@ -677,15 +703,13 @@ class Bring:
                 json['arguments'] = [itemName]
         try:
             url = f'{self.url}bringnotifications/lists/{listUuid}'
-            async with self._session.post(url, headers=self.postHeaders, json=json,  raise_for_status=True) as r:
-                _LOGGER.debug(f"Response from %s: %s", url, r.status)
+            async with self._session.post(url, headers=self.postHeaders, json=json) as r:
+                _LOGGER.debug(f'Response from %s: %s', url, r.status)
                 r.raise_for_status()
                 return r
         except asyncio.TimeoutError as e:
             _LOGGER.error(f'Exception: Cannot send notification {notificationType} for list {listUuid}:\n{traceback.format_exc()}')
-            _LOGGER.debug(_LOGGER.debug(traceback.print_exc()))
-            raise BringRequestException(f"Sending notification {notificationType} for list {listUuid} failed due to connection timeout") from e
+            raise BringRequestException(f'Sending notification {notificationType} for list {listUuid} failed due to connection timeout.') from e
         except aiohttp.ClientError as e:
             _LOGGER.error(f'Exception: Cannot send notification {notificationType} for list {listUuid}:\n{traceback.format_exc()}')
-            _LOGGER.debug(traceback.print_exc())
-            raise BringRequestException(f"Sending notification {notificationType} for list {listUuid} failed due to request exception") from e
+            raise BringRequestException(f'Sending notification {notificationType} for list {listUuid} failed due to request exception.') from e
