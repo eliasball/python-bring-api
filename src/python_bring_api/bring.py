@@ -5,7 +5,7 @@ from requests.exceptions import JSONDecodeError
 from requests.models import Response
 from typing import Dict
 
-from .types import BringNotificationType, BringAuthResponse, BringItemsResponse, BringListResponse, BringListItemsDetailsResponse
+from .types import BringNotificationType, BringAuthResponse, BringItemsResponse, BringListResponse, BringListItemsDetailsResponse, BringUserSettingsResponse
 from .exceptions import BringAuthException, BringRequestException, BringParseException
 
 import logging
@@ -22,8 +22,10 @@ class Bring:
         self.password = password
         self.uuid = ''
         self.publicUuid = ''
+        self.translations = {}
 
         self.url = 'https://api.getbring.com/rest/v2/'
+        self.url_static = 'https://web.getbring.com/'
 
         if headers:
             self.headers = headers
@@ -144,7 +146,7 @@ class Bring:
             raise BringParseException(f'Loading lists failed during parsing of request response.') from e
 
 
-    def getItems(self, listUuid: str) -> BringItemsResponse:
+    def getItems(self, listUuid: str, locale: str = None) -> BringItemsResponse:
         """
         Get all items from a shopping list.
 
@@ -173,10 +175,16 @@ class Bring:
             raise BringRequestException(f'Loading list items failed due to request exception.') from e
         
         try:
-            return r.json()
+            data = r.json()
         except JSONDecodeError as e:
             _LOGGER.error(f'Exception: Cannot get items for list {listUuid}:\n{traceback.format_exc()}')
             raise BringParseException(f'Loading list items failed during parsing of request response.') from e
+        if locale:
+            for item in data['purchase']:
+                item['name'] = self.getArticleTranslations(locale).get(item['name'], item['name'])
+            for item in data['recently']:
+                item['name'] = self.getArticleTranslations(locale).get(item['name'], item['name'])
+        return data
 
 
     def getAllItemDetails(self, listUuid: str) -> BringListItemsDetailsResponse:
@@ -215,7 +223,7 @@ class Bring:
             raise BringParseException(f'Loading list item details failed during parsing of request response.') from e
 
 
-    def saveItem(self, listUuid: str, itemName: str, specification: str = '') -> Response:
+    def saveItem(self, listUuid: str, itemName: str, specification: str = '', locale: str = None) -> Response:
         """
         Save an item to a shopping list.
 
@@ -238,6 +246,8 @@ class Bring:
         BringRequestException
             If the request fails.
         """
+        if locale:
+            itemName = self.getArticleTranslations(locale, invert=True).get(itemName, itemName)
         try:
             r = requests.put(f'{self.url}bringlists/{listUuid}', headers=self.putHeaders, data=f'&purchase={itemName}&recently=&specification={specification}&remove=&sender=null')
             r.raise_for_status()
@@ -247,7 +257,7 @@ class Bring:
             raise BringRequestException(f'Saving item {itemName} ({specification}) to list {listUuid} failed due to request exception.') from e
 
     
-    def updateItem(self, listUuid: str, itemName: str, specification: str = '') -> Response:
+    def updateItem(self, listUuid: str, itemName: str, specification: str = '', locale: str = None) -> Response:
         """
         Update an existing list item.
 
@@ -279,7 +289,7 @@ class Bring:
             raise BringRequestException(f'Updating item {itemName} ({specification}) in list {listUuid} failed due to request exception.') from e
 
     
-    def removeItem(self, listUuid: str, itemName: str) -> Response:
+    def removeItem(self, listUuid: str, itemName: str, locale: str = None) -> Response:
         """
         Remove an item from a shopping list.
 
@@ -300,6 +310,8 @@ class Bring:
         BringRequestException
             If the request fails.
         """
+        if locale:
+            itemName = self.getArticleTranslations(locale, invert=True).get(itemName, itemName)
         try:
             r = requests.put(f'{self.url}bringlists/{listUuid}', headers=self.putHeaders, data=f'&purchase=&recently=&specification=&remove={itemName}&sender=null')
             r.raise_for_status()
@@ -309,7 +321,7 @@ class Bring:
             raise BringRequestException(f'Removing item {itemName} from list {listUuid} failed due to request exception.') from e
 
 
-    def completeItem(self, listUuid: str, itemName: str) -> Response:
+    def completeItem(self, listUuid: str, itemName: str, locale: str = None) -> Response:
         """
         Complete an item from a shopping list. This will add it to recent items.
         If it was not on the list, it will still be added to recent items.
@@ -331,6 +343,8 @@ class Bring:
         BringRequestException
             If the request fails.
         """
+        if locale:
+            itemName = self.getArticleTranslations(locale, invert=True).get(itemName, itemName)
         try:
             r = requests.put(f'{self.url}bringlists/{listUuid}', headers=self.putHeaders, data=f'&uuid={listUuid}&recently={itemName}')
             r.raise_for_status()
@@ -387,3 +401,76 @@ class Bring:
         except RequestException as e:
             _LOGGER.error(f'Exception: Could not send notification {notificationType} for list {listUuid}:\n{traceback.format_exc()}')
             raise BringRequestException(f'Sending notification {notificationType} for list {listUuid} failed due to request exception.') from e
+        
+
+    def getUserSettings(self) -> BringUserSettingsResponse:
+        """
+        Load user settings and user list settings.
+
+        Returns
+        -------
+        dict
+            The JSON response as a dict.
+        
+
+        Raises
+        ------
+        BringRequestException
+            If the request fails.
+        BringParseException
+            If the parsing of the request response fails.
+        """
+        try:
+            r = requests.get(f'{self.url}bringusersettings/{self.uuid}', headers = self.headers)
+            r.raise_for_status()
+        except RequestException as e:
+            _LOGGER.error(f'Exception: Cannot get user settings:\n{traceback.format_exc()}')
+            raise BringRequestException(f'Loading user settings failed due to request exception.') from e
+        
+        try:
+            return r.json()
+        except JSONDecodeError as e:
+            _LOGGER.error(f'Exception: Cannot get user settings:\n{traceback.format_exc()}')
+            raise BringParseException(f'Loading user settings failed during parsing of request response.') from e
+
+
+    def getArticleTranslations(self, locale: str, invert: bool = False) -> Dict:
+        """
+        Get articles translation table.
+        
+        Parameters
+        ----------
+        locale : str
+           locale of the translation table.
+        invert : str
+            Return the translation table inverted.
+        
+       Returns
+        -------
+        dict
+            The JSON response as a dict.
+        
+
+        Raises
+        ------
+        BringRequestException
+            If the request fails.
+        BringParseException
+            If the parsing of the request response fails.
+       """ 
+        if locale not in self.translations: 
+
+            try:
+                r = requests.get(f'{self.url_static}locale/articles.{locale}.json')
+                r.raise_for_status()
+            except RequestException as e:
+                _LOGGER.error(f'Exception: Cannot load articles.{locale}.json:\n{traceback.format_exc()}')
+                raise BringRequestException(f'Loading article translations for locale {locale} failed due to request exception.') from e
+            
+            try:
+                self.translations[locale] = r.json()
+            except JSONDecodeError as e:
+                _LOGGER.error(f'Exception: Cannot load articles.{locale}.json:\n{traceback.format_exc()}')
+                raise BringParseException(f'Loading article translations for locale {locale} failed during parsing of request response.') from e
+        
+        return {value:key for key, value in self.translations[locale].items()} if invert else self.translations[locale]

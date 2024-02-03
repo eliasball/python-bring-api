@@ -69,3 +69,18 @@ class BringNotificationType(Enum):
     CHANGED_LIST = "CHANGED_LIST"
     SHOPPING_DONE = "SHOPPING_DONE"
     URGENT_MESSAGE = "URGENT_MESSAGE"
+
+class BringUserSettings(TypedDict):
+    """A user settings class. Represents a single user setting."""
+    key: str
+    value: str
+
+class BringUserListSettings(TypedDict):
+    """A user list settings class. Represents a single list setting."""
+    listUuid: str
+    usersettings: List[BringUserSettings]
+
+class BringUserSettingsResponse(TypedDict):
+    """A user settings response class."""
+    usersettings: List[BringUserSettings]
+    userlistsettings: List[BringUserListSettings]
