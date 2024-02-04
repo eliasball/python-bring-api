@@ -714,12 +714,16 @@ class Bring:
             _LOGGER.error(f'Exception: Cannot send notification {notificationType} for list {listUuid}:\n{traceback.format_exc()}')
             raise BringRequestException(f'Sending notification {notificationType} for list {listUuid} failed due to request exception.') from e
 
-        
-        
+
     def checkemail(self, mail: str = None) -> BringCheckEmailResponse:
         """
         Validate if an e-mail is valid and if user exists.
-
+        
+        Parameters
+        ----------
+        mail : str
+            An e-mail address.
+            
         Returns
         -------
         dict
@@ -732,19 +736,57 @@ class Bring:
         BringParseException
             If the parsing of the request response fails.
         """
-        mail = self.mail if not mail else mail
+        async def _async():
+            async with aiohttp.ClientSession() as session:
+                self._session = session
+                res = await self.checkemailAsync(mail)
+                self._session = None
+                return res
+        return asyncio.run(_async())     
 
-        payload = { 'email': mail }
+
+    async def checkemailAsync(self, mail: str = None) -> BringCheckEmailResponse:
+        """
+        Validate if an e-mail is valid and if user exists.
+        
+        Parameters
+        ----------
+        mail : str
+            An e-mail address.
+            
+        Returns
+        -------
+        dict
+            The JSON response as a dict.
+
+         Raises
+        ------
+        BringRequestException
+            If the request fails.
+        BringParseException
+            If the parsing of the request response fails.
+        """
+        mail = mail or self.mail 
+
+        if not mail: 
+            raise ValueError('Argument mail missing.')
+
+        params = { 'email': mail }
         
         try:
-            r = requests.get(f'{self.url}bringauth/checkemail', headers = self.headers, params=payload)
-            r.raise_for_status()
-        except RequestException as e:
+            url = f'{self.url}bringauth/checkemail'
+            async with self._session.get(url, headers=self.headers, params=params) as r:
+                _LOGGER.debug(f'Response from %s: %s', url, r.status)
+                r.raise_for_status()
+
+                try:
+                    return await r.json()
+                except JSONDecodeError as e:
+                    _LOGGER.error(f'Exception: Cannot get verification for {mail}:\n{traceback.format_exc()}')
+                    raise BringParseException(f'Verifying email failed during parsing of request response.') from e
+        except asyncio.TimeoutError as e:
+            _LOGGER.error(f'Exception: Cannot get verification for {mail}:\n{traceback.format_exc()}')
+            raise BringRequestException('Verifying email failed due to connection timeout.') from e
+        except aiohttp.ClientError as e:
             _LOGGER.error(f'Exception: Cannot get verification for {mail}:\n{traceback.format_exc()}')
             raise BringRequestException(f'Verifying email failed due to request exception.') from e
-        
-        try:
-            return r.json()
-        except JSONDecodeError as e:
-            _LOGGER.error(f'Exception: Cannot get verification for {mail}:\n{traceback.format_exc()}')
-            raise BringParseException(f'Verifying email failed during parsing of request response.') from e
