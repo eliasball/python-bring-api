@@ -4,8 +4,8 @@ import asyncio
 import traceback
 from typing import Dict
 
-from .types import BringCheckEmailResponse, BringNotificationType, BringAuthResponse, BringItemsResponse, BringListResponse, BringListItemsDetailsResponse
-from .exceptions import BringAuthException, BringRequestException, BringParseException
+from .types import BringNotificationType, BringAuthResponse, BringItemsResponse, BringListResponse, BringListItemsDetailsResponse
+from .exceptions import BringAuthException, BringEMailInvalidException, BringRequestException, BringParseException, BringUserUnknownException
 
 import logging
 
@@ -715,7 +715,7 @@ class Bring:
             raise BringRequestException(f'Sending notification {notificationType} for list {listUuid} failed due to request exception.') from e
 
 
-    def checkemail(self, mail: str = None) -> BringCheckEmailResponse:
+    def checkemail(self, mail: str = None) -> bool:
         """
         Validate if an e-mail is valid and if user exists.
         
@@ -726,8 +726,8 @@ class Bring:
             
         Returns
         -------
-        dict
-            The JSON response as a dict.
+        bool
+            True if user exists.
 
          Raises
         ------
@@ -735,6 +735,10 @@ class Bring:
             If the request fails.
         BringParseException
             If the parsing of the request response fails.
+        BringEMailInvalidException
+            If emailValid is false
+        BringUserUnknownException
+            If userExists is false
         """
         async def _async():
             async with aiohttp.ClientSession() as session:
@@ -745,7 +749,7 @@ class Bring:
         return asyncio.run(_async())     
 
 
-    async def checkemailAsync(self, mail: str = None) -> BringCheckEmailResponse:
+    async def checkemailAsync(self, mail: str = None) -> bool:
         """
         Validate if an e-mail is valid and if user exists.
         
@@ -756,19 +760,23 @@ class Bring:
             
         Returns
         -------
-        dict
-            The JSON response as a dict.
+        bool
+            True if user exists.
 
-         Raises
+        Raises
         ------
         BringRequestException
             If the request fails.
         BringParseException
             If the parsing of the request response fails.
+        BringEMailInvalidException
+            If emailValid is false
+        BringUserUnknownException
+            If userExists is false
         """
-        mail = mail or self.mail 
+        mail = mail or self.mail
 
-        if not mail: 
+        if not mail:
             raise ValueError('Argument mail missing.')
 
         params = { 'email': mail }
@@ -776,17 +784,26 @@ class Bring:
         try:
             url = f'{self.url}bringauth/checkemail'
             async with self._session.get(url, headers=self.headers, params=params) as r:
-                _LOGGER.debug(f'Response from %s: %s', url, r.status)
+                _LOGGER.debug('Response from %s: %s', url, r.status)
                 r.raise_for_status()
 
                 try:
-                    return await r.json()
+                    data = await r.json()
                 except JSONDecodeError as e:
                     _LOGGER.error(f'Exception: Cannot get verification for {mail}:\n{traceback.format_exc()}')
-                    raise BringParseException(f'Verifying email failed during parsing of request response.') from e
+                    raise BringParseException('Verifying email failed during parsing of request response.') from e
         except asyncio.TimeoutError as e:
             _LOGGER.error(f'Exception: Cannot get verification for {mail}:\n{traceback.format_exc()}')
             raise BringRequestException('Verifying email failed due to connection timeout.') from e
         except aiohttp.ClientError as e:
             _LOGGER.error(f'Exception: Cannot get verification for {mail}:\n{traceback.format_exc()}')
-            raise BringRequestException(f'Verifying email failed due to request exception.') from e
+            raise BringRequestException('Verifying email failed due to request exception.') from e
+
+        if not data['emailValid']:
+            _LOGGER.error('Exception: E-mail %s is invalid.', mail)
+            raise BringEMailInvalidException(f'E-mail {mail} is invalid.')
+        if not data['userExists']:
+            _LOGGER.error('Exception: User %s does not exist.', mail)
+            raise BringUserUnknownException(f'User {mail} does not exist.')
+
+        return True

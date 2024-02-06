@@ -69,9 +69,3 @@ class BringNotificationType(Enum):
     CHANGED_LIST = "CHANGED_LIST"
     SHOPPING_DONE = "SHOPPING_DONE"
     URGENT_MESSAGE = "URGENT_MESSAGE"
-
-class BringCheckEmailResponse(TypedDict):
-    """A check email response class"""
-    
-    emailValid: bool
-    userExists: bool
