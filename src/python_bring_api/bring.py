@@ -336,7 +336,7 @@ class Bring:
         list
             The JSON response as a list. A list of item details.
             Caution: This is NOT a list of the items currently marked as 'to buy'. See getItems() for that.
-            This list contains a lists items that where customized by changing it's default icon, category or uploading
+            This contains a list of items that where customized by changing their default icon, category or uploading
             an image.
         
         Raises
