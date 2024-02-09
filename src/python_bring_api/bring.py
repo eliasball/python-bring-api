@@ -24,7 +24,7 @@ class Bring:
         self.uuid = ''
         self.publicUuid = ''
         self.translations = {}
-
+        self.supported_locales = ['en-AU', 'de-DE', 'fr-FR', 'it-IT','en-CA', 'nl-NL','nb-NO','pl-PL', 'pt-BR', 'ru-RU', 'sv-SE', 'de-CH', 'fr-CH', 'it-CH', 'es-ES', 'tr-TR', 'en-GB', 'en-US', 'hu-HU', 'de-AT']
         self.url = 'https://api.getbring.com/rest/v2/'
         self.url_static = 'https://web.getbring.com/'
 
@@ -786,11 +786,11 @@ class Bring:
                 _LOGGER.debug('Response from %s: %s', url, r.status)
                 r.raise_for_status()
             
-            try:
-                return await r.json()
-            except JSONDecodeError as e:
-                _LOGGER.error(f'Exception: Cannot get user settings for uuid {self.uuid}:\n{traceback.format_exc()}')
-                raise BringParseException('Loading user settings failed during parsing of request response.') from e
+                try:
+                    return await r.json()
+                except JSONDecodeError as e:
+                    _LOGGER.error(f'Exception: Cannot get user settings for uuid {self.uuid}:\n{traceback.format_exc()}')
+                    raise BringParseException('Loading user settings failed during parsing of request response.') from e
         except asyncio.TimeoutError as e:
             _LOGGER.error(f'Exception: Cannot get user settings for uuid {self.uuid}:\n{traceback.format_exc()}')
             raise BringRequestException('Loading user settings failed due to connection timeout.') from e
@@ -854,18 +854,12 @@ class Bring:
             If the request fails.
         BringParseException
             If the parsing of the request response fails.
-       """ 
-        _supported_locales = {
-            'en-AU', 'de-DE', 'fr-FR', 'it-IT','en-CA', 'nl-NL', 
-            'nb-NO','pl-PL', 'pt-BR', 'ru-RU', 'sv-SE', 'de-CH', 
-            'fr-CH', 'it-CH', 'es-ES', 'tr-TR', 'en-GB', 'en-US'
-            'hu-HU', 'de-AT'
-            }
-        if locale not in _supported_locales:
-            _LOGGER.debug('Locale %s not supported by Bring. Ommitting translation.', locale)
-            return {}
-       
-        if locale not in self.translations: 
+       """
+        if locale not in self.supported_locales:
+            _LOGGER.debug('Locale %s not supported by Bring.', locale)
+            raise ValueError(f'Locale {locale} not supported by Bring.')
+
+        if locale not in self.translations:
 
             try:
                 url = f'{self.url_static}locale/articles.{locale}.json'
