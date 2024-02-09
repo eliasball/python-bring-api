@@ -39,20 +39,20 @@ bring.login()
 lists = bring.loadLists()["lists"]
 
 # Save an item with specifications to a certain shopping list
-bring.saveItem(lists[0]['listUuid'], 'Milk', 'low fat')
+bring.saveItem(lists[0]['listUuid'], 'Milk', 'low fat', 'en-GB')
 
 # Save another item
-bring.saveItem(lists[0]['listUuid'], 'Carrots')
+bring.saveItem(lists[0]['listUuid'], 'Carrots', locale='en-GB')
 
 # Get all the items of a list
-items = bring.getItems(lists[0]['listUuid'])
+items = bring.getItems(lists[0]['listUuid'], 'en-GB')
 print(items)
 
 # Check off an item
-bring.completeItem(lists[0]['listUuid'], 'Carrots')
+bring.completeItem(lists[0]['listUuid'], 'Carrots', 'en-GB')
 
 # Remove an item from a list
-bring.removeItem(lists[0]['listUuid'], 'Milk')
+bring.removeItem(lists[0]['listUuid'], 'Milk', 'en-GB')
 ```
 
 ### Async
@@ -78,20 +78,20 @@ async def main():
     lists = (await bring.loadListsAsync())["lists"]
 
     # Save an item with specifications to a certain shopping list
-    await bring.saveItemAsync(lists[0]['listUuid'], 'Milk', 'low fat')
+    await bring.saveItemAsync(lists[0]['listUuid'], 'Milk', 'low fat', 'en-GB')
 
     # Save another item
-    await bring.saveItemAsync(lists[0]['listUuid'], 'Carrots')
+    await bring.saveItemAsync(lists[0]['listUuid'], 'Carrots', locale='en-GB')
 
     # Get all the items of a list
-    items = await bring.getItemsAsync(lists[0]['listUuid'])
+    items = await bring.getItemsAsync(lists[0]['listUuid'], 'en-GB')
     print(items)
 
     # Check off an item
-    await bring.completeItemAsync(lists[0]['listUuid'], 'Carrots')
+    await bring.completeItemAsync(lists[0]['listUuid'], 'Carrots', 'en-GB')
 
     # Remove an item from a list
-    await bring.removeItemAsync(lists[0]['listUuid'], 'Milk')
+    await bring.removeItemAsync(lists[0]['listUuid'], 'Milk', 'en-GB')
 
 asyncio.run(main())
 ```
@@ -126,6 +126,16 @@ You can fix this according to [this](https://stackoverflow.com/questions/6812329
 ```python
 asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 ```
+
+## Locales and article translations
+
+Bring has an extensive article catalog from which users can select when adding an item to their shopping list. However these articles are then translated by the App to Brings default language (de-CH) before submitting any changes to the API. This library handles these translations transparantly if you set the locale argument acordingly when calling its methods.
+
+Each list in Bring can have individual language settings. If you want to get the locale settings from the App, you can use the methods `getUserSettings` and `getUserSettingsAsync`
+
+Currently Bring supports the following locales:
+* en-AU, de-DE, fr-FR, it-IT, en-CA, nl-NL, nb-NO, pl-PL, pt-BR, ru-RU, sv-SE, de-CH, fr-CH, it-CH, es-ES, tr-TR, en-GB, en-US, hu-HU, de-AT
+
 
 ## Changelog
 
