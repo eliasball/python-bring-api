@@ -286,10 +286,16 @@ class Bring:
 
         if locale:
             _translations = await self.getArticleTranslationsAsync(locale)
-            for item in data['purchase']:
-                item['name'] = _translations.get(item['name'], item['name'])
-            for item in data['recently']:
-                item['name'] =_translations.get(item['name'], item['name'])
+            if 'items' in data:
+                for item in data['items']['purchase']:
+                    item['itemId'] = _translations.get(item['itemId'], item['itemId'])
+                for item in data['items']['recently']:
+                    item['itemId'] =_translations.get(item['itemId'], item['itemId'])
+            else:
+                for item in data['purchase']:
+                    item['name'] = _translations.get(item['name'], item['name'])
+                for item in data['recently']:
+                    item['name'] =_translations.get(item['name'], item['name'])
         return data
 
     def getAllItemDetails(self, listUuid: str) -> BringListItemsDetailsResponse:
