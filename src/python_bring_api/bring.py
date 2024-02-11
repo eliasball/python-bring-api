@@ -4,7 +4,7 @@ import asyncio
 import traceback
 from typing import Dict
 
-from .types import BringNotificationType, BringAuthResponse, BringItemsResponse, BringListResponse, BringListItemsDetailsResponse
+from .types import BringNotificationType, BringAuthResponse, BringItemsResponse, BringListResponse, BringListItemsDetailsResponse, BringUserSettingsResponse
 from .exceptions import BringAuthException, BringRequestException, BringParseException
 
 import logging
@@ -23,8 +23,10 @@ class Bring:
         self.password = password
         self.uuid = ''
         self.publicUuid = ''
-
+        self.translations = {}
+        self.supported_locales = ['en-AU', 'de-DE', 'fr-FR', 'it-IT','en-CA', 'nl-NL','nb-NO','pl-PL', 'pt-BR', 'ru-RU', 'sv-SE', 'de-CH', 'fr-CH', 'it-CH', 'es-ES', 'tr-TR', 'en-GB', 'en-US', 'hu-HU', 'de-AT']
         self.url = 'https://api.getbring.com/rest/v2/'
+        self.url_static = 'https://web.getbring.com/'
 
         if headers:
             self.headers = headers
@@ -214,7 +216,7 @@ class Bring:
             _LOGGER.error(f'Exception: Cannot get lists:\n{traceback.format_exc()}')
             raise BringRequestException('Loading lists failed due to request exception.') from e
 
-    def getItems(self, listUuid: str) -> BringItemsResponse:
+    def getItems(self, listUuid: str, locale: str = None) -> BringItemsResponse:
         """
         Get all items from a shopping list.
 
@@ -238,12 +240,12 @@ class Bring:
         async def _async():
             async with aiohttp.ClientSession() as session:
                 self._session = session
-                res = await self.getItemsAsync(listUuid)
+                res = await self.getItemsAsync(listUuid, locale)
                 self._session = None
                 return res
         return asyncio.run(_async())
 
-    async def getItemsAsync(self, listUuid: str) -> BringItemsResponse:
+    async def getItemsAsync(self, listUuid: str, locale: str = None) -> BringItemsResponse:
         """
         Get all items from a shopping list.
 
@@ -271,7 +273,7 @@ class Bring:
                 r.raise_for_status()
 
                 try:
-                    return await r.json()
+                    data = await r.json()
                 except JSONDecodeError as e:
                     _LOGGER.error(f'Exception: Cannot get items for list {listUuid}:\n{traceback.format_exc()}')
                     raise BringParseException('Loading list items failed during parsing of request response.') from e
@@ -282,6 +284,19 @@ class Bring:
             _LOGGER.error(f'Exception: Cannot get items for list {listUuid}:\n{traceback.format_exc()}')
             raise BringRequestException('Loading list items failed due to request exception.') from e
 
+        if locale:
+            _translations = await self.getArticleTranslationsAsync(locale)
+            if 'items' in data:
+                for item in data['items']['purchase']:
+                    item['itemId'] = _translations.get(item['itemId'], item['itemId'])
+                for item in data['items']['recently']:
+                    item['itemId'] =_translations.get(item['itemId'], item['itemId'])
+            else:
+                for item in data['purchase']:
+                    item['name'] = _translations.get(item['name'], item['name'])
+                for item in data['recently']:
+                    item['name'] =_translations.get(item['name'], item['name'])
+        return data
 
     def getAllItemDetails(self, listUuid: str) -> BringListItemsDetailsResponse:
         """
@@ -315,7 +330,7 @@ class Bring:
 
     async def getAllItemDetailsAsync(self, listUuid: str) -> BringItemsResponse:
         """
-        Get all details from a shopping list.
+        Get all details of customized items from a shopping list.
 
         Parameters
         ----------
@@ -327,6 +342,8 @@ class Bring:
         list
             The JSON response as a list. A list of item details.
             Caution: This is NOT a list of the items currently marked as 'to buy'. See getItems() for that.
+            This contains a list of items that where customized by changing their default icon, category or uploading
+            an image.
         
         Raises
         ------
@@ -353,7 +370,7 @@ class Bring:
             _LOGGER.error(f'Exception: Cannot get item details for list {listUuid}:\n{traceback.format_exc()}')
             raise BringRequestException('Loading list details failed due to request exception.') from e
 
-    def saveItem(self, listUuid: str, itemName: str, specification='') -> aiohttp.ClientResponse:
+    def saveItem(self, listUuid: str, itemName: str, specification='', locale: str = None) -> aiohttp.ClientResponse:
         """
         Save an item to a shopping list.
 
@@ -379,12 +396,12 @@ class Bring:
         async def _async():
             async with aiohttp.ClientSession() as session:
                 self._session = session
-                res = await self.saveItemAsync(listUuid, itemName, specification)
+                res = await self.saveItemAsync(listUuid, itemName, specification, locale)
                 self._session = None
                 return res
         return asyncio.run(_async())
 
-    async def saveItemAsync(self, listUuid: str, itemName: str, specification='') -> aiohttp.ClientResponse:
+    async def saveItemAsync(self, listUuid: str, itemName: str, specification='', locale: str = None) -> aiohttp.ClientResponse:
         """
         Save an item to a shopping list.
 
@@ -407,6 +424,9 @@ class Bring:
         BringRequestException
             If the request fails.
         """
+        if locale:
+            _translations = await self.getArticleTranslationsAsync(locale, invert=True)
+            itemName = _translations.get(itemName, itemName)
         data = {
             'purchase': itemName,
             'specification': specification,
@@ -425,7 +445,7 @@ class Bring:
             raise BringRequestException(f'Saving item {itemName} ({specification}) to list {listUuid} failed due to request exception.') from e
 
     
-    def updateItem(self, listUuid: str, itemName: str, specification='') -> aiohttp.ClientResponse:
+    def updateItem(self, listUuid: str, itemName: str, specification='', locale: str = None) -> aiohttp.ClientResponse:
         """
         Update an existing list item.
 
@@ -451,12 +471,12 @@ class Bring:
         async def _async():
             async with aiohttp.ClientSession() as session:
                 self._session = session
-                res = await self.updateItemAsync(listUuid, itemName, specification)
+                res = await self.updateItemAsync(listUuid, itemName, specification, locale)
                 self._session = None
                 return res
         return asyncio.run(_async())
 
-    async def updateItemAsync(self, listUuid: str, itemName: str, specification='') -> aiohttp.ClientResponse:
+    async def updateItemAsync(self, listUuid: str, itemName: str, specification='', locale: str = None) -> aiohttp.ClientResponse:
         """
         Update an existing list item.
 
@@ -479,6 +499,9 @@ class Bring:
         BringRequestException
             If the request fails.
         """
+        if locale:
+            _translations = await self.getArticleTranslationsAsync(locale, invert=True)
+            itemName = _translations.get(itemName, itemName)
         data = {
             'purchase': itemName,
             'specification': specification
@@ -497,7 +520,7 @@ class Bring:
             raise BringRequestException(f'Updating item {itemName} ({specification}) in list {listUuid} failed due to request exception.') from e
 
     
-    def removeItem(self, listUuid: str, itemName: str) -> aiohttp.ClientResponse:
+    def removeItem(self, listUuid: str, itemName: str, locale: str = None) -> aiohttp.ClientResponse:
         """
         Remove an item from a shopping list.
 
@@ -521,12 +544,12 @@ class Bring:
         async def _async():
             async with aiohttp.ClientSession() as session:
                 self._session = session
-                res = await self.removeItemAsync(listUuid, itemName)
+                res = await self.removeItemAsync(listUuid, itemName, locale)
                 self._session = None
                 return res
         return asyncio.run(_async())
 
-    async def removeItemAsync(self, listUuid: str, itemName: str) -> aiohttp.ClientResponse:
+    async def removeItemAsync(self, listUuid: str, itemName: str, locale: str = None) -> aiohttp.ClientResponse:
         """
         Remove an item from a shopping list.
 
@@ -547,6 +570,9 @@ class Bring:
         BringRequestException
             If the request fails.
         """
+        if locale:
+            _translations = await self.getArticleTranslationsAsync(locale, invert=True)
+            itemName = _translations.get(itemName, itemName)
         data = {
             'remove': itemName,
         }
@@ -563,7 +589,7 @@ class Bring:
             _LOGGER.error(f'Exception: Cannot remove item {itemName} to list {listUuid}:\n{traceback.format_exc()}')
             raise BringRequestException(f'Removing item {itemName} from list {listUuid} failed due to request exception.') from e
 
-    def completeItem(self, listUuid: str, itemName: str) -> aiohttp.ClientResponse:
+    def completeItem(self, listUuid: str, itemName: str, locale: str = None) -> aiohttp.ClientResponse:
         """
         Complete an item from a shopping list. This will add it to recent items.
         If it was not on the list, it will still be added to recent items.
@@ -588,13 +614,13 @@ class Bring:
         async def _async():
             async with aiohttp.ClientSession() as session:
                 self._session = session
-                res = await self.completeItemAsync(listUuid, itemName)
+                res = await self.completeItemAsync(listUuid, itemName, locale)
                 self._session = None
                 return res
         return asyncio.run(_async())
 
 
-    async def completeItemAsync(self, listUuid: str, itemName: str) -> aiohttp.ClientResponse:
+    async def completeItemAsync(self, listUuid: str, itemName: str, locale: str = None) -> aiohttp.ClientResponse:
         """
         Complete an item from a shopping list. This will add it to recent items.
         If it was not on the list, it will still be added to recent items.
@@ -616,6 +642,9 @@ class Bring:
         BringRequestException
             If the request fails.
         """
+        if locale:
+            _translations = await self.getArticleTranslationsAsync(locale, invert=True)
+            itemName = _translations.get(itemName, itemName)
         data = {
             'recently': itemName
         }
@@ -713,3 +742,149 @@ class Bring:
         except aiohttp.ClientError as e:
             _LOGGER.error(f'Exception: Cannot send notification {notificationType} for list {listUuid}:\n{traceback.format_exc()}')
             raise BringRequestException(f'Sending notification {notificationType} for list {listUuid} failed due to request exception.') from e
+
+
+    def getUserSettings(self) -> BringUserSettingsResponse:
+        """
+        Load user settings and user list settings.
+
+        Returns
+        -------
+        dict
+            The JSON response as a dict.
+        
+
+        Raises
+        ------
+        BringRequestException
+            If the request fails.
+        BringParseException
+            If the parsing of the request response fails.
+        """
+        async def _async():
+            async with aiohttp.ClientSession() as session:
+                self._session = session
+                res = await self.getUserSettingsAsync()
+                self._session = None
+                return res
+        return asyncio.run(_async())
+
+    async def getUserSettingsAsync(self) -> BringUserSettingsResponse:
+        """
+        Load user settings and user list settings.
+
+        Returns
+        -------
+        dict
+            The JSON response as a dict.
+        
+
+        Raises
+        ------
+        BringRequestException
+            If the request fails.
+        BringParseException
+            If the parsing of the request response fails.
+        """
+        try:
+            url = f'{self.url}bringusersettings/{self.uuid}'
+            async with self._session.get(url, headers=self.headers) as r:
+                _LOGGER.debug('Response from %s: %s', url, r.status)
+                r.raise_for_status()
+            
+                try:
+                    return await r.json()
+                except JSONDecodeError as e:
+                    _LOGGER.error(f'Exception: Cannot get user settings for uuid {self.uuid}:\n{traceback.format_exc()}')
+                    raise BringParseException('Loading user settings failed during parsing of request response.') from e
+        except asyncio.TimeoutError as e:
+            _LOGGER.error(f'Exception: Cannot get user settings for uuid {self.uuid}:\n{traceback.format_exc()}')
+            raise BringRequestException('Loading user settings failed due to connection timeout.') from e
+        except aiohttp.ClientError as e:
+            _LOGGER.error(f'Exception: Cannot get user settings for uuid {self.uuid}:\n{traceback.format_exc()}')
+            raise BringRequestException('Loading user settings failed due to request exception.') from e
+
+
+    def getArticleTranslations(self, locale: str, invert: bool = False) -> Dict:
+        """
+        Get articles translation table.
+        
+        Parameters
+        ----------
+        locale : str
+           locale of the translation table.
+        invert : str
+            Return the translation table inverted.
+        
+       Returns
+        -------
+        dict
+            The JSON response as a dict.
+        
+
+        Raises
+        ------
+        BringRequestException
+            If the request fails.
+        BringParseException
+            If the parsing of the request response fails.
+       """ 
+        async def _async():
+            async with aiohttp.ClientSession() as session:
+                self._session = session
+                res = await self.getArticleTranslationsAsync(locale, invert)
+                self._session = None
+                return res
+        return asyncio.run(_async())
+
+    async def getArticleTranslationsAsync(self, locale: str, invert: bool = False) -> Dict:
+        """
+        Get articles translation table.
+        
+        Parameters
+        ----------
+        locale : str
+           locale of the translation table.
+        invert : str
+            Return the translation table inverted.
+        
+       Returns
+        -------
+        dict
+            The JSON response as a dict.
+        
+
+        Raises
+        ------
+        BringRequestException
+            If the request fails.
+        BringParseException
+            If the parsing of the request response fails.
+       """
+        if locale not in self.supported_locales:
+            _LOGGER.debug('Locale %s not supported by Bring.', locale)
+            raise ValueError(f'Locale {locale} not supported by Bring.')
+
+        if locale not in self.translations:
+
+            try:
+                url = f'{self.url_static}locale/articles.{locale}.json'
+                async with self._session.get(url) as r:
+                    _LOGGER.debug('Response from %s: %s', url, r.status)
+                    r.raise_for_status()
+
+                    try:
+                        self.translations[locale] = await r.json()
+                    except JSONDecodeError as e:
+                        _LOGGER.error(f'Exception: Cannot load articles.{locale}.json:\n{traceback.format_exc()}')
+                        raise BringParseException(f'Loading article translations for locale {locale} failed during parsing of request response.') from e
+            except asyncio.TimeoutError as e:
+                _LOGGER.error(f'Exception: Cannot load articles.{locale}.json::\n{traceback.format_exc()}')
+                raise BringRequestException('Loading article translations for locale {locale} failed due to connection timeout.') from e
+               
+            except aiohttp.ClientError as e:
+                _LOGGER.error(f'Exception: Cannot load articles.{locale}.json:\n{traceback.format_exc()}')
+                raise BringRequestException(f'Loading article translations for locale {locale} failed due to request exception.') from e
+            
+
+        return {value:key for key, value in self.translations[locale].items()} if invert else self.translations[locale]
