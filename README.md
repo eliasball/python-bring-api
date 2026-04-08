@@ -1,3 +1,7 @@
+## NO LONGER MAINTAINED
+
+This package is no longer maintained. I suggest using [this](https://github.com/miaucl/bring-api) implementation instead.
+
 # Bring Shopping Lists API
 
 An unofficial python package to access the Bring! shopping lists API.
